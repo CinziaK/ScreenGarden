@@ -11,65 +11,70 @@ library(png)
 # Define UI
 ui <- fluidPage(theme = shinytheme("flatly"),
                 navbarPage(
-                  # theme = "cerulean",  # <--- To use a theme, uncomment this
                   "ScreenGarden",
-                  tabPanel("Home",
+                  tabPanel("Home", #First tab is homepage, with Logo and description
                            fluidRow(
                         
-                               img(src = "SG2.png", height = "100%" , width = "100%")
+                               img(src = "SG2.png", height = "100%" , width = "100%") 
                              ), 
                            
                            hr(),
                            fluidRow(h5("ScreenGarden is designed to facilitate the analysis of plate-based
                                        high-throughput growth assay with one or two different 
-                                       controls in 96,384 or 1536 colony format. For a detailed 
+                                       controls in 384 or 1536 colony format. For a detailed 
                                        description of each analysis step, please download the 
                                        instructions using the download button below.
                                        Enjoy the screengardening!")),
                            
-                           fluidRow(downloadButton("downloadpdf", "Download Instructions"))
+                           fluidRow(downloadButton("downloadpdf", "Download Instructions"), # download the instructions to run ScreenGarden
+                                    downloadButton("downloadzip", "Download R scripts"), #download the scripts, for user who wants to run ScreenGarden directly from R studio
+                                    downloadButton("downloadzip2", "Download example files")) #download the scripts, for user who wants to run ScreenGarden directly from R studio
+                                    
                            ),
                                      
-                  tabPanel("CalculateLGRs",
+                  tabPanel("CalculateLGRs", # second tab to calculate LGRs compared to one control
                            sidebarPanel(
-                             textInput("query", "Query Name:", ""),
-                             textInput("control", "Control Name:", ""),
+                             textInput("query", "Query Name:", ""), # field to enter query name
+                             textInput("control", "Control Name:", ""), # field to enter control name
                              
                              # Horizontal line ----
                              tags$hr(),
                              
                              # Input: Select a file ----
-                             fileInput("file1", "Choose colonyAreas.txt File",
+                             fileInput("file1", "Choose Colony Size File", # field to enter colony size input file such as cm engine output (check format if error message)
                                        multiple = TRUE,
                                        accept = c("text/csv",
                                                   "text/comma-separated-values,text/plain",
                                                   ".csv")),
-                             fileInput("file2", "Choose Keyfile",
+                             fileInput("file2", "Choose Keyfile", # field to enter keyfile (check format if error message)
                                        multiple = TRUE,
                                        accept = c("text/csv",
                                                   "text/comma-separated-values,text/plain",
                                                   ".csv")),
                              tags$hr(),
                              # Horizontal line ----
-                             # Input: Checkbox if file has header ----
-                             #checkboxInput("header", "Header", FALSE),
                              
-                             # Input: Select separator ----
-                             #radioButtons("sep", "Separator",
-                             #choices = c( Tab = "\t"),
-                             #selected = "\t"),
-                             
-                             radioButtons("replicates", "Replicates",
+                             radioButtons("filetype", "Which software was used to measure colony size?", # select input file format
+                                          choices = c( "CM engine" = 1, 
+                                                       "other" = 2),
+                                          selected = 1),
+                             radioButtons("replicates", "Replicates", # select number of replicates 
                                           choices = c( "4" = 4,
-                                                       "16" = 16),
+                                                       "16" = 16,
+                                                       "1" = 1),
                                           selected = 4),
                              
-                             radioButtons("array", "Plate array",
+                             radioButtons("array", "Plate array", # select number of colonies on plate
                                           choices = c("384" = 384,
                                                       "1536" = 1536),
                                           selected = 1536),
                              
-                             checkboxInput("smooth", "Smoothing", TRUE),
+                             radioButtons("correct", "Plate correction method", # select normalisation method (based on median or specific positive controls)
+                                          choices = c("Plate median" = 7,
+                                                      "Mean Positive Control" = 8),
+                                          selected = 7),
+                             
+                             checkboxInput("smooth", "Smoothing", TRUE), # smoothing should be selected for screens that use median-correction as correction method, when most colonies are not deficient in growth
                              
                              
                              # Input: Select number of rows to display ----
@@ -94,10 +99,10 @@ ui <- fluidPage(theme = shinytheme("flatly"),
                   ),
                   
                   
-                  # Navbar 2, tabPanel
+                  # Navbar 2, tabPanel for combining the analyses of two independent controls
                   tabPanel("Combine2controls",sidebarPanel(
                     
-                    fileInput("file3", "Choose CTR1 File",
+                    fileInput("file3", "Choose CTR1 File", # select output files from previous tab 
                               multiple = TRUE,
                               accept = c("text/csv",
                                          "text/comma-separated-values,text/plain",
@@ -121,6 +126,7 @@ ui <- fluidPage(theme = shinytheme("flatly"),
                       
                     ))
                   ),
+                  # plot data for easy and quick analysis 
                   tabPanel("Plots", sidebarPanel(
                     
                     fileInput("file5", "Choose CSV File",
@@ -136,7 +142,7 @@ ui <- fluidPage(theme = shinytheme("flatly"),
                     tags$hr(),
                     tags$hr(),
                     
-                    
+                    #plot histogram to show data distribution
                     sliderInput(inputId = "bins",
                                 label = "Number of bins in histogram of data distribution:",
                                 min = 1,
@@ -161,6 +167,7 @@ ui <- fluidPage(theme = shinytheme("flatly"),
                     plotOutput(outputId = "distPlot")
                   )
                   ),
+                  # Mixture model tab to define q-value thresholds for screens that can be fitted into a bimodal distribution
                   tabPanel("Mixture Model", sidebarPanel(
                     
                     fileInput("file6", "Choose CSV File",
@@ -178,28 +185,7 @@ ui <- fluidPage(theme = shinytheme("flatly"),
                       tableOutput("contents3")
                       
                     )
-                  )),
-                  tabPanel("SPIalyser", sidebarPanel(
-                    
-                    fileInput("file7", "Choose CSV File",
-                              multiple = TRUE,
-                              accept = c("text/csv",
-                                         "text/comma-separated-values,text/plain",
-                                         ".csv")),
-                    tags$hr(),
-                    downloadButton("downloadData4", "Download")
-                  ),
-                  
-                  mainPanel(
-                    fluidRow(
-                      column(width = 12, class = "well",
-                             h4("Cellular localisation of SPIs (LGR > 0.4)"),
-                             plotOutput("donut", height = 400
-                                        )
-                             )
-                      )
-                    )
-                  )
+                  ))
                 
                 ) # navbarPage
 ) # fluidPage
